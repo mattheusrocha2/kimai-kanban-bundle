@@ -98,9 +98,3 @@ services:
         php -d memory_limit=512M /opt/kimai/bin/console cache:clear --env=prod &&
         php -d memory_limit=512M /opt/kimai/bin/console -n kimai:bundle:kanban:install
     restart: 'no'
-
-volumes:
-  kimai-mysql-data:
-  kimai-data:
-  kimai-plugins:
-  kimai-bundles:
