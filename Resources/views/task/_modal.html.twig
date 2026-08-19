@@ -25,7 +25,35 @@
 
                 <div class="form-group">
                     <label>{{ 'description'|trans }}</label>
-                    <textarea id="kanban-task-description" class="form-control" rows="4"></textarea>
+                    <ul class="nav nav-tabs kanban-description-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link active" id="kanban-description-tab-edit" data-mode="edit">
+                                {{ 'kanban.description.edit'|trans }}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" id="kanban-description-tab-preview" data-mode="preview">
+                                {{ 'kanban.description.preview'|trans }}
+                            </a>
+                        </li>
+                    </ul>
+                    <textarea id="kanban-task-description" class="form-control" rows="6"></textarea>
+                    <div id="kanban-task-description-preview" class="kanban-markdown-preview d-none"></div>
+                    <small class="form-text text-muted">{{ 'kanban.description.markdown_hint'|trans }}</small>
+                </div>
+
+                <div class="form-group">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="mb-0">{{ 'kanban.attachment.title'|trans }}</label>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="kanban-attachment-add-btn">
+                                <i class="fas fa-paperclip"></i> {{ 'kanban.attachment.add'|trans }}
+                            </button>
+                            <input type="file" id="kanban-attachment-input" accept="image/png,image/jpeg,image/gif,image/webp" multiple class="d-none">
+                        </div>
+                    </div>
+                    <div id="kanban-attachment-list" class="kanban-attachment-list"></div>
+                    <small class="form-text text-muted">{{ 'kanban.attachment.hint'|trans }}</small>
                 </div>
 
                 <div class="form-group">
@@ -75,7 +103,13 @@
 
                 <hr>
 
-                <h6>{{ 'kanban.task.checklist'|trans }}</h6>
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <h6 class="mb-0">{{ 'kanban.task.checklist'|trans }}</h6>
+                    <span id="kanban-checklist-progress-label" class="small text-muted">0%</span>
+                </div>
+                <div class="kanban-checklist-progress mb-2">
+                    <div id="kanban-checklist-progress-bar" class="kanban-checklist-progress-bar" style="width: 0%"></div>
+                </div>
                 <ul class="list-group mb-2" id="kanban-checklist-items"></ul>
                 <div class="input-group">
                     <input type="text" id="kanban-checklist-new-text" class="form-control" placeholder="{{ 'kanban.checklist.add_placeholder'|trans }}">

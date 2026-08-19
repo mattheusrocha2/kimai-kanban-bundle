@@ -7,12 +7,17 @@ use App\Entity\Timesheet;
 use Doctrine\ORM\EntityManagerInterface;
 use KimaiPlugin\KanbanBundle\Entity\ChecklistItem;
 use KimaiPlugin\KanbanBundle\Entity\Task;
+use KimaiPlugin\KanbanBundle\Entity\TaskAttachment;
 use KimaiPlugin\KanbanBundle\Entity\TaskList;
 use KimaiPlugin\KanbanBundle\Repository\ChecklistItemRepository;
 use KimaiPlugin\KanbanBundle\Repository\TaskRepository;
+use KimaiPlugin\KanbanBundle\Service\TaskAttachmentStorage;
 use KimaiPlugin\KanbanBundle\Service\TaskTimeTrackingService;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -25,6 +30,7 @@ class TaskController extends AbstractController
         private readonly TaskRepository $taskRepository,
         private readonly ChecklistItemRepository $checklistItemRepository,
         private readonly TaskTimeTrackingService $timeTracking,
+        private readonly TaskAttachmentStorage $attachmentStorage,
     ) {
     }
 
@@ -234,6 +240,35 @@ class TaskController extends AbstractController
         ]);
     }
 
+    #[Route(path: '/checklist-item/{item}/child/create', name: 'kanban_checklist_child_create', methods: ['POST'])]
+    #[IsGranted('edit_kanban')]
+    public function createChecklistChildItem(ChecklistItem $item, Request $request): Response
+    {
+        $text = trim((string) $request->request->get('text'));
+        if ($text === '') {
+            return $this->json(['error' => 'kanban.checklist.text_required'], 422);
+        }
+
+        $task = $item->getTask();
+
+        $child = new ChecklistItem();
+        $child->setText($text);
+        $child->setPosition($this->checklistItemRepository->getNextPosition($task, $item));
+        $item->addChild($child);
+        $task->addChecklistItem($child);
+
+        $this->entityManager->persist($child);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'id' => $child->getId(),
+            'text' => $child->getText(),
+            'checked' => $child->isChecked(),
+            'parentId' => $item->getId(),
+            'progress' => $task->getChecklistProgress(),
+        ]);
+    }
+
     #[Route(path: '/checklist-item/{item}/toggle', name: 'kanban_checklist_toggle', methods: ['POST'])]
     #[IsGranted('edit_kanban')]
     public function toggleChecklistItem(ChecklistItem $item): Response
@@ -259,6 +294,89 @@ class TaskController extends AbstractController
         return $this->json(['success' => true, 'progress' => $task->getChecklistProgress()]);
     }
 
+    /**
+     * One file per request — the front-end loops over multi-select/paste and
+     * fires this once per image, which keeps validation and error reporting
+     * per-file instead of all-or-nothing.
+     */
+    #[Route(path: '/task/{task}/attachment/upload', name: 'kanban_attachment_upload', methods: ['POST'])]
+    #[IsGranted('edit_kanban')]
+    public function uploadAttachment(Task $task, Request $request): Response
+    {
+        $file = $request->files->get('file');
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
+            return $this->json(['error' => 'kanban.attachment.invalid_file'], 422);
+        }
+
+        if (!\in_array($file->getMimeType(), TaskAttachmentStorage::ALLOWED_MIME_TYPES, true)) {
+            return $this->json(['error' => 'kanban.attachment.unsupported_type'], 422);
+        }
+
+        if ($file->getSize() > TaskAttachmentStorage::MAX_SIZE_BYTES) {
+            return $this->json(['error' => 'kanban.attachment.too_large'], 422);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $mimeType = $file->getMimeType();
+        $size = $file->getSize();
+
+        try {
+            $filename = $this->attachmentStorage->save($file);
+        } catch (\RuntimeException $e) {
+            return $this->json(['error' => $e->getMessage()], 500);
+        }
+
+        $attachment = new TaskAttachment();
+        $attachment->setFilename($filename);
+        $attachment->setOriginalName($originalName);
+        $attachment->setMimeType($mimeType);
+        $attachment->setSize($size);
+        $attachment->setUploadedBy($this->getUser());
+        $task->addAttachment($attachment);
+
+        $this->entityManager->persist($attachment);
+        $this->entityManager->flush();
+
+        return $this->json($this->serializeAttachment($attachment));
+    }
+
+    #[Route(path: '/attachment/{attachment}/file', name: 'kanban_attachment_file', methods: ['GET'])]
+    public function attachmentFile(TaskAttachment $attachment): Response
+    {
+        $path = $this->attachmentStorage->getPath($attachment->getFilename());
+        if (!is_file($path)) {
+            throw $this->createNotFoundException();
+        }
+
+        $response = new BinaryFileResponse($path);
+        $response->headers->set('Content-Type', $attachment->getMimeType());
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $attachment->getOriginalName());
+
+        return $response;
+    }
+
+    #[Route(path: '/attachment/{attachment}/delete', name: 'kanban_attachment_delete', methods: ['POST'])]
+    #[IsGranted('edit_kanban')]
+    public function deleteAttachment(TaskAttachment $attachment): Response
+    {
+        $this->attachmentStorage->delete($attachment->getFilename());
+        $this->entityManager->remove($attachment);
+        $this->entityManager->flush();
+
+        return $this->json(['success' => true]);
+    }
+
+    private function serializeAttachment(TaskAttachment $attachment): array
+    {
+        return [
+            'id' => $attachment->getId(),
+            'url' => $this->generateUrl('kanban_attachment_file', ['attachment' => $attachment->getId()]),
+            'originalName' => $attachment->getOriginalName(),
+            'mimeType' => $attachment->getMimeType(),
+            'size' => $attachment->getSize(),
+        ];
+    }
+
     private function serializeTask(Task $task, bool $withChecklist = false): array
     {
         $data = [
@@ -277,11 +395,28 @@ class TaskController extends AbstractController
         ];
 
         if ($withChecklist) {
-            $data['checklist'] = array_map(static fn (ChecklistItem $i) => [
+            // array_values() matters here: array_filter() keeps the original,
+            // non-sequential keys, and array_map() carries them through — so
+            // json_encode() would serialize this as a JSON *object* instead
+            // of an array the moment any child item existed (e.g. {"0":...,
+            // "2":...}), breaking the front-end's items.forEach().
+            $topLevel = array_values(array_filter(
+                $task->getChecklistItems()->toArray(),
+                static fn (ChecklistItem $i) => $i->getParent() === null
+            ));
+
+            $serializeItem = static fn (ChecklistItem $i) => [
                 'id' => $i->getId(),
                 'text' => $i->getText(),
                 'checked' => $i->isChecked(),
-            ], $task->getChecklistItems()->toArray());
+                'children' => array_values(array_map(static fn (ChecklistItem $c) => [
+                    'id' => $c->getId(),
+                    'text' => $c->getText(),
+                    'checked' => $c->isChecked(),
+                ], $i->getChildren()->toArray())),
+            ];
+
+            $data['checklist'] = array_map($serializeItem, $topLevel);
 
             $logs = array_map(static fn (Timesheet $t) => [
                 'id' => $t->getId(),
@@ -292,6 +427,11 @@ class TaskController extends AbstractController
             ], $task->getTimesheets()->toArray());
             usort($logs, static fn (array $a, array $b) => $b['begin'] <=> $a['begin']);
             $data['timeLog'] = $logs;
+
+            $data['attachments'] = array_map(
+                fn (TaskAttachment $a) => $this->serializeAttachment($a),
+                $task->getAttachments()->toArray()
+            );
         }
 
         return $data;

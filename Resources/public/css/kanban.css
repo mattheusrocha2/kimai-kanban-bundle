@@ -161,6 +161,15 @@
     color: var(--tblr-body-color);
 }
 
+#kanban-task-modal .modal-header {
+    padding-right: 0.75rem;
+}
+
+#kanban-task-modal .modal-header .close {
+    margin: 0 0 0 0.5rem;
+    padding: 0.25rem 0.25rem;
+}
+
 .kanban-modal-backdrop {
     display: none;
     position: fixed;
@@ -213,4 +222,175 @@ body.kanban-modal-open {
     height: 2px;
     background: #dc3545;
     transform: rotate(45deg);
+}
+
+/* ---------- description markdown ---------- */
+
+.kanban-description-tabs {
+    margin-bottom: 0;
+    border-bottom: none;
+}
+
+.kanban-description-tabs .nav-link {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+#kanban-task-description {
+    border-top-left-radius: 0;
+}
+
+.kanban-markdown-preview {
+    min-height: 130px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 8px 12px;
+    border: 1px solid var(--tblr-border-color, #ced4da);
+    border-top-left-radius: 0;
+    border-radius: 4px;
+    background: var(--tblr-bg-surface, var(--tblr-body-bg, #fff));
+}
+
+.kanban-markdown-preview:empty::before {
+    content: attr(data-empty-text);
+    color: var(--tblr-secondary, #6c757d);
+    font-style: italic;
+}
+
+.kanban-markdown-preview > *:first-child {
+    margin-top: 0;
+}
+
+.kanban-markdown-preview > *:last-child {
+    margin-bottom: 0;
+}
+
+.kanban-markdown-preview blockquote {
+    margin: 0 0 10px;
+    padding: 4px 12px;
+    border-left: 3px solid var(--tblr-border-color, #ced4da);
+    color: var(--tblr-secondary, #6c757d);
+}
+
+.kanban-markdown-preview code {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.kanban-markdown-preview ul,
+.kanban-markdown-preview ol {
+    padding-left: 1.4rem;
+}
+
+/* ---------- checklist ---------- */
+
+.kanban-checklist-toggle {
+    margin-right: 8px;
+}
+
+.kanban-checklist-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.08));
+    overflow: hidden;
+}
+
+.kanban-checklist-progress-bar {
+    height: 100%;
+    background: #206bc4;
+    border-radius: 4px;
+    transition: width 0.2s ease;
+}
+
+.kanban-checklist-children {
+    list-style: none;
+    margin: 4px 0 4px 28px;
+    padding-left: 12px;
+    border-left: 2px solid var(--tblr-border-color, #ced4da);
+}
+
+.kanban-checklist-children .list-group-item {
+    padding: 6px 10px;
+}
+
+.kanban-checklist-add-child {
+    margin: 4px 0 4px 28px;
+}
+
+.kanban-checklist-add-child .form-control {
+    font-size: 0.85rem;
+}
+
+.kanban-checklist-subtoggle {
+    background: none;
+    border: none;
+    color: var(--tblr-secondary, #6c757d);
+    padding: 0 6px 0 0;
+    cursor: pointer;
+}
+
+/* ---------- attachments ---------- */
+
+.kanban-attachment-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.kanban-attachment-list:empty {
+    display: none;
+}
+
+.kanban-attachment-item {
+    position: relative;
+    width: 92px;
+    height: 92px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--tblr-border-color, #ced4da);
+    background: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.kanban-attachment-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.kanban-attachment-item a {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.kanban-attachment-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    line-height: 18px;
+    text-align: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+.kanban-attachment-remove:hover {
+    background: #dc3545;
+}
+
+.kanban-attachment-uploading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tblr-secondary, #6c757d);
+    font-size: 1.1rem;
 }

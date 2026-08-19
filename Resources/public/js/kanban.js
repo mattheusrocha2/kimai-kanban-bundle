@@ -33,6 +33,24 @@
             .then(function (res) { return res.json(); });
     }
 
+    // No Content-Type header here on purpose: the browser sets
+    // "multipart/form-data; boundary=..." itself from the FormData body.
+    function postFile(url, file) {
+        var body = new FormData();
+        body.append('file', file);
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: body,
+            credentials: 'same-origin'
+        }).then(function (res) {
+            if (!res.ok) {
+                return res.json().then(function (err) { throw err; });
+            }
+            return res.json();
+        });
+    }
+
     function formatDuration(seconds) {
         var h = Math.floor(seconds / 3600);
         var m = Math.floor((seconds % 3600) / 60);
@@ -44,6 +62,159 @@
             el.textContent = formatDuration(seconds);
         });
     }
+
+    // ---------- description markdown ----------
+    // Minimal, dependency-free markdown -> HTML renderer. HTML is escaped
+    // *before* any markdown tag is generated, so user input can never inject
+    // markup of its own (safe against XSS).
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function markdownInline(text) {
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+        text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        text = text.replace(/_([^_]+)_/g, '<em>$1</em>');
+        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        return text;
+    }
+
+    function markdownToHtml(markdown) {
+        if (!markdown) {
+            return '';
+        }
+
+        var lines = escapeHtml(markdown).split(/\r?\n/);
+        var html = [];
+        var paragraph = [];
+        var inUl = false;
+        var inOl = false;
+
+        function closeLists() {
+            if (inUl) { html.push('</ul>'); inUl = false; }
+            if (inOl) { html.push('</ol>'); inOl = false; }
+        }
+
+        function flushParagraph() {
+            if (paragraph.length) {
+                html.push('<p>' + paragraph.join(' ') + '</p>');
+                paragraph = [];
+            }
+        }
+
+        lines.forEach(function (line) {
+            if (/^\s*$/.test(line)) {
+                closeLists();
+                flushParagraph();
+                return;
+            }
+
+            var header = line.match(/^(#{1,6})\s+(.*)$/);
+            if (header) {
+                closeLists();
+                flushParagraph();
+                var level = header[1].length;
+                html.push('<h' + level + '>' + markdownInline(header[2]) + '</h' + level + '>');
+                return;
+            }
+
+            if (/^\s*([-*]\s*){3,}$/.test(line)) {
+                closeLists();
+                flushParagraph();
+                html.push('<hr>');
+                return;
+            }
+
+            var ul = line.match(/^\s*[-*]\s+(.*)$/);
+            if (ul) {
+                flushParagraph();
+                if (inOl) { html.push('</ol>'); inOl = false; }
+                if (!inUl) { html.push('<ul>'); inUl = true; }
+                html.push('<li>' + markdownInline(ul[1]) + '</li>');
+                return;
+            }
+
+            var ol = line.match(/^\s*\d+\.\s+(.*)$/);
+            if (ol) {
+                flushParagraph();
+                if (inUl) { html.push('</ul>'); inUl = false; }
+                if (!inOl) { html.push('<ol>'); inOl = true; }
+                html.push('<li>' + markdownInline(ol[1]) + '</li>');
+                return;
+            }
+
+            var quote = line.match(/^\s*&gt;\s?(.*)$/);
+            if (quote) {
+                closeLists();
+                flushParagraph();
+                html.push('<blockquote>' + markdownInline(quote[1]) + '</blockquote>');
+                return;
+            }
+
+            closeLists();
+            paragraph.push(markdownInline(line));
+        });
+
+        closeLists();
+        flushParagraph();
+
+        return html.join('\n');
+    }
+
+    function renderDescriptionPreview() {
+        var textarea = document.getElementById('kanban-task-description');
+        var preview = document.getElementById('kanban-task-description-preview');
+        if (!textarea || !preview) {
+            return;
+        }
+        preview.innerHTML = markdownToHtml(textarea.value);
+    }
+
+    function setDescriptionMode(mode) {
+        var textarea = document.getElementById('kanban-task-description');
+        var preview = document.getElementById('kanban-task-description-preview');
+        var editTab = document.getElementById('kanban-description-tab-edit');
+        var previewTab = document.getElementById('kanban-description-tab-preview');
+        if (!textarea || !preview || !editTab || !previewTab) {
+            return;
+        }
+
+        if (mode === 'preview') {
+            renderDescriptionPreview();
+            textarea.classList.add('d-none');
+            preview.classList.remove('d-none');
+            previewTab.classList.add('active');
+            editTab.classList.remove('active');
+        } else {
+            textarea.classList.remove('d-none');
+            preview.classList.add('d-none');
+            editTab.classList.add('active');
+            previewTab.classList.remove('active');
+        }
+    }
+
+    (function initDescriptionTabs() {
+        var editTab = document.getElementById('kanban-description-tab-edit');
+        var previewTab = document.getElementById('kanban-description-tab-preview');
+        if (!editTab || !previewTab) {
+            return;
+        }
+        editTab.addEventListener('click', function (e) {
+            e.preventDefault();
+            setDescriptionMode('edit');
+        });
+        previewTab.addEventListener('click', function (e) {
+            e.preventDefault();
+            setDescriptionMode('preview');
+        });
+    })();
 
     // ---------- non-blocking toast (replaces alert()) ----------
 
@@ -205,6 +376,7 @@
             document.getElementById('kanban-task-id').value = task.id;
             document.getElementById('kanban-task-title').value = task.title;
             document.getElementById('kanban-task-description').value = task.description || '';
+            setDescriptionMode('edit');
             document.getElementById('kanban-task-start-date').value = task.startDate || '';
             document.getElementById('kanban-task-due-date').value = task.dueDate || '';
             document.getElementById('kanban-task-end-date').value = task.endDate || '';
@@ -218,6 +390,8 @@
             }
 
             renderChecklist(task.checklist || []);
+            updateChecklistProgress(task.checklistProgress);
+            renderAttachments(task.attachments || []);
             renderTimeLog(task.timeLog || []);
             var todayInput = document.getElementById('kanban-log-date');
             if (todayInput && !todayInput.value) {
@@ -294,37 +468,226 @@
         }
     }
 
+    function buildChecklistItem(item, isChild) {
+        var li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        li.setAttribute('data-item-id', item.id);
+
+        var label = document.createElement('label');
+        label.className = 'm-0 flex-grow-1 d-flex align-items-center';
+        if (item.checked) label.style.textDecoration = 'line-through';
+
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.checked;
+        checkbox.className = 'kanban-checklist-toggle';
+        checkbox.setAttribute('data-item-id', item.id);
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(item.text));
+
+        var actions = document.createElement('div');
+        actions.className = 'd-flex align-items-center';
+
+        if (!isChild) {
+            var addChild = document.createElement('button');
+            addChild.type = 'button';
+            addChild.className = 'kanban-checklist-subtoggle';
+            addChild.setAttribute('data-item-id', item.id);
+            addChild.title = window.KANBAN_ADD_SUBITEM_LABEL || 'Add sub-item';
+            addChild.innerHTML = '<i class="fas fa-list-ul"></i>';
+            actions.appendChild(addChild);
+        }
+
+        var del = document.createElement('button');
+        del.className = 'btn btn-xs btn-link text-danger kanban-checklist-delete';
+        del.setAttribute('data-item-id', item.id);
+        del.innerHTML = '<i class="fas fa-times"></i>';
+        actions.appendChild(del);
+
+        li.appendChild(label);
+        li.appendChild(actions);
+        return li;
+    }
+
     function renderChecklist(items) {
         var list = document.getElementById('kanban-checklist-items');
         list.innerHTML = '';
         items.forEach(function (item) {
-            var li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-center';
-            li.setAttribute('data-item-id', item.id);
+            list.appendChild(buildChecklistItem(item, false));
 
-            var label = document.createElement('label');
-            label.className = 'm-0 flex-grow-1';
-            if (item.checked) label.style.textDecoration = 'line-through';
+            var children = item.children || [];
+            if (children.length) {
+                var childList = document.createElement('ul');
+                childList.className = 'list-group kanban-checklist-children';
+                childList.setAttribute('data-parent-id', item.id);
+                children.forEach(function (child) {
+                    childList.appendChild(buildChecklistItem(child, true));
+                });
+                list.appendChild(childList);
+            }
 
-            var checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = item.checked;
-            checkbox.className = 'mr-2 kanban-checklist-toggle';
-            checkbox.setAttribute('data-item-id', item.id);
+            var addChildRow = document.createElement('div');
+            addChildRow.className = 'input-group input-group-sm kanban-checklist-add-child d-none';
+            addChildRow.setAttribute('data-parent-id', item.id);
 
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(item.text));
+            var addChildInput = document.createElement('input');
+            addChildInput.type = 'text';
+            addChildInput.className = 'form-control kanban-checklist-child-text';
+            addChildInput.placeholder = window.KANBAN_SUBITEM_PLACEHOLDER || 'Add sub-item';
 
-            var del = document.createElement('button');
-            del.className = 'btn btn-xs btn-link text-danger kanban-checklist-delete';
-            del.setAttribute('data-item-id', item.id);
-            del.innerHTML = '<i class="fas fa-times"></i>';
+            var addChildBtnWrap = document.createElement('div');
+            addChildBtnWrap.className = 'input-group-append';
+            var addChildBtn = document.createElement('button');
+            addChildBtn.type = 'button';
+            addChildBtn.className = 'btn btn-outline-secondary kanban-checklist-child-add';
+            addChildBtn.setAttribute('data-parent-id', item.id);
+            addChildBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addChildBtnWrap.appendChild(addChildBtn);
 
-            li.appendChild(label);
-            li.appendChild(del);
-            list.appendChild(li);
+            addChildRow.appendChild(addChildInput);
+            addChildRow.appendChild(addChildBtnWrap);
+            list.appendChild(addChildRow);
         });
     }
+
+    function updateChecklistProgress(progress) {
+        var bar = document.getElementById('kanban-checklist-progress-bar');
+        var label = document.getElementById('kanban-checklist-progress-label');
+        if (!bar || !label) {
+            return;
+        }
+        var total = (progress && progress.total) || 0;
+        var done = (progress && progress.done) || 0;
+        var percent = total > 0 ? Math.round((done / total) * 100) : 0;
+        bar.style.width = percent + '%';
+        label.textContent = percent + '%';
+    }
+
+    function refreshChecklist() {
+        if (!currentTaskId) {
+            return;
+        }
+        get(urlFor(URLS.taskShowBase, currentTaskId)).then(function (task) {
+            renderChecklist(task.checklist || []);
+            updateChecklistProgress(task.checklistProgress);
+        });
+    }
+
+    // ---------- attachments ----------
+
+    function renderAttachments(attachments) {
+        var list = document.getElementById('kanban-attachment-list');
+        if (!list) {
+            return;
+        }
+        list.innerHTML = '';
+        attachments.forEach(function (attachment) {
+            var item = document.createElement('div');
+            item.className = 'kanban-attachment-item';
+            item.setAttribute('data-attachment-id', attachment.id);
+
+            var link = document.createElement('a');
+            link.href = attachment.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.title = attachment.originalName;
+
+            var img = document.createElement('img');
+            img.src = attachment.url;
+            img.alt = attachment.originalName;
+            link.appendChild(img);
+
+            var del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'kanban-attachment-remove';
+            del.setAttribute('data-attachment-id', attachment.id);
+            del.title = window.KANBAN_REMOVE_LABEL || 'Remove';
+            del.innerHTML = '&times;';
+
+            item.appendChild(link);
+            item.appendChild(del);
+            list.appendChild(item);
+        });
+    }
+
+    function refreshAttachments() {
+        if (!currentTaskId) {
+            return;
+        }
+        get(urlFor(URLS.taskShowBase, currentTaskId)).then(function (task) {
+            renderAttachments(task.attachments || []);
+        });
+    }
+
+    function uploadAttachments(files) {
+        if (!currentTaskId || !files || !files.length) {
+            return;
+        }
+        var list = document.getElementById('kanban-attachment-list');
+        var placeholders = [];
+
+        Array.from(files).forEach(function (file) {
+            if (file.type.indexOf('image/') !== 0) {
+                return;
+            }
+
+            var placeholder = document.createElement('div');
+            placeholder.className = 'kanban-attachment-item kanban-attachment-uploading';
+            placeholder.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            if (list) {
+                list.appendChild(placeholder);
+            }
+            placeholders.push(placeholder);
+
+            postFile(urlFor(URLS.attachmentUploadBase, currentTaskId), file)
+                .then(function () {
+                    refreshAttachments();
+                })
+                .catch(function (err) {
+                    placeholder.remove();
+                    showToast(err.error || 'kanban.attachment.upload_failed', true);
+                });
+        });
+    }
+
+    var attachmentAddBtn = document.getElementById('kanban-attachment-add-btn');
+    var attachmentInput = document.getElementById('kanban-attachment-input');
+    if (attachmentAddBtn && attachmentInput) {
+        attachmentAddBtn.addEventListener('click', function () {
+            attachmentInput.click();
+        });
+        attachmentInput.addEventListener('change', function () {
+            uploadAttachments(attachmentInput.files);
+            attachmentInput.value = '';
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        var removeBtn = e.target.closest('.kanban-attachment-remove');
+        if (!removeBtn) {
+            return;
+        }
+        var attachmentId = removeBtn.getAttribute('data-attachment-id');
+        post(urlFor(URLS.attachmentDeleteBase, attachmentId)).then(function () {
+            removeBtn.closest('.kanban-attachment-item').remove();
+        });
+    });
+
+    // Paste a screenshot straight from the clipboard while the task modal is open.
+    document.addEventListener('paste', function (e) {
+        var modal = document.getElementById('kanban-task-modal');
+        if (!modal || !modal.classList.contains('show') || !e.clipboardData) {
+            return;
+        }
+        var files = Array.from(e.clipboardData.items || [])
+            .filter(function (i) { return i.kind === 'file' && i.type.indexOf('image/') === 0; })
+            .map(function (i) { return i.getAsFile(); })
+            .filter(Boolean);
+        if (files.length) {
+            uploadAttachments(files);
+        }
+    });
 
     function formatLogDateTime(iso) {
         // "2026-08-19T10:00" -> "19/08 10:00"
@@ -429,17 +792,9 @@
             var input = document.getElementById('kanban-checklist-new-text');
             var text = input.value.trim();
             if (!text) return;
-            post(urlFor(URLS.checklistCreateBase, currentTaskId), { text: text }).then(function (item) {
+            post(urlFor(URLS.checklistCreateBase, currentTaskId), { text: text }).then(function () {
                 input.value = '';
-                var items = Array.from(document.querySelectorAll('#kanban-checklist-items li')).map(function (li) {
-                    return {
-                        id: li.getAttribute('data-item-id'),
-                        text: li.querySelector('label').textContent.trim(),
-                        checked: li.querySelector('input').checked
-                    };
-                });
-                items.push({ id: item.id, text: item.text, checked: item.checked });
-                renderChecklist(items);
+                refreshChecklist();
             });
         });
     }
@@ -449,6 +804,7 @@
             var itemId = e.target.getAttribute('data-item-id');
             post(urlFor(URLS.checklistToggleBase, itemId)).then(function (res) {
                 e.target.closest('label').style.textDecoration = res.checked ? 'line-through' : 'none';
+                updateChecklistProgress(res.progress);
             });
         }
     });
@@ -457,9 +813,45 @@
         var delItem = e.target.closest('.kanban-checklist-delete');
         if (delItem) {
             var itemId = delItem.getAttribute('data-item-id');
-            post(urlFor(URLS.checklistDeleteBase, itemId)).then(function () {
-                delItem.closest('li').remove();
+            post(urlFor(URLS.checklistDeleteBase, itemId)).then(function (res) {
+                updateChecklistProgress(res.progress);
+                refreshChecklist();
             });
+            return;
+        }
+
+        var subtoggle = e.target.closest('.kanban-checklist-subtoggle');
+        if (subtoggle) {
+            var parentId = subtoggle.getAttribute('data-item-id');
+            var row = document.querySelector('.kanban-checklist-add-child[data-parent-id="' + parentId + '"]');
+            if (row) {
+                row.classList.toggle('d-none');
+                if (!row.classList.contains('d-none')) {
+                    row.querySelector('.kanban-checklist-child-text').focus();
+                }
+            }
+            return;
+        }
+
+        var addChildBtn = e.target.closest('.kanban-checklist-child-add');
+        if (addChildBtn) {
+            var pId = addChildBtn.getAttribute('data-parent-id');
+            var row2 = addChildBtn.closest('.kanban-checklist-add-child');
+            var textInput = row2.querySelector('.kanban-checklist-child-text');
+            var childText = textInput.value.trim();
+            if (!childText) return;
+            post(urlFor(URLS.checklistChildCreateBase, pId), { text: childText }).then(function (res) {
+                textInput.value = '';
+                updateChecklistProgress(res.progress);
+                refreshChecklist();
+            });
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.classList.contains('kanban-checklist-child-text')) {
+            e.preventDefault();
+            e.target.closest('.kanban-checklist-add-child').querySelector('.kanban-checklist-child-add').click();
         }
     });
 
@@ -559,10 +951,15 @@
     if (kanbanBoardEl) {
         document.querySelectorAll('.kanban-list[data-list-id]').forEach(function (list) {
             list.addEventListener('dragstart', function (e) {
+                // dragstart bubbles up from any draggable descendant (a card,
+                // in particular) — without this guard, dragging a card was
+                // mistakenly read as "the whole column is being dragged".
+                if (e.target !== list) return;
                 e.stopPropagation();
                 list.classList.add('kanban-list-dragging');
             });
-            list.addEventListener('dragend', function () {
+            list.addEventListener('dragend', function (e) {
+                if (e.target !== list) return;
                 list.classList.remove('kanban-list-dragging');
             });
         });

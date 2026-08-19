@@ -76,10 +76,18 @@ class Task
     #[ORM\OrderBy(['position' => 'ASC'])]
     private Collection $checklistItems;
 
+    /**
+     * Images attached to the task (pasted screenshots or file-picker uploads).
+     */
+    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskAttachment::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'DESC'])]
+    private Collection $attachments;
+
     public function __construct()
     {
         $this->timesheets = new ArrayCollection();
         $this->checklistItems = new ArrayCollection();
+        $this->attachments = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -283,5 +291,23 @@ class Task
         }
 
         return ['done' => $done, 'total' => $total];
+    }
+
+    /**
+     * @return Collection<int, TaskAttachment>
+     */
+    public function getAttachments(): Collection
+    {
+        return $this->attachments;
+    }
+
+    public function addAttachment(TaskAttachment $attachment): self
+    {
+        if (!$this->attachments->contains($attachment)) {
+            $this->attachments->add($attachment);
+            $attachment->setTask($this);
+        }
+
+        return $this;
     }
 }

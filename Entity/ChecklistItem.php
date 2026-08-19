@@ -2,11 +2,14 @@
 
 namespace KimaiPlugin\KanbanBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use KimaiPlugin\KanbanBundle\Repository\ChecklistItemRepository;
 
 /**
  * One line of a task's checklist ("sublista"), Trello-style: free text + done flag.
+ * An item may itself carry a one-level-deep sub-checklist via {@see $parent}/{@see $children}.
  */
 #[ORM\Entity(repositoryClass: ChecklistItemRepository::class)]
 #[ORM\Table(name: 'kimai_kanban_checklist_items')]
@@ -29,6 +32,22 @@ class ChecklistItem
 
     #[ORM\Column(name: 'position', type: 'integer')]
     private int $position = 0;
+
+    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'children')]
+    #[ORM\JoinColumn(name: 'parent_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    private ?ChecklistItem $parent = null;
+
+    /**
+     * @var Collection<int, ChecklistItem>
+     */
+    #[ORM\OneToMany(mappedBy: 'parent', targetEntity: self::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['position' => 'ASC'])]
+    private Collection $children;
+
+    public function __construct()
+    {
+        $this->children = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -79,6 +98,36 @@ class ChecklistItem
     public function setPosition(int $position): self
     {
         $this->position = $position;
+
+        return $this;
+    }
+
+    public function getParent(): ?self
+    {
+        return $this->parent;
+    }
+
+    public function setParent(?self $parent): self
+    {
+        $this->parent = $parent;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ChecklistItem>
+     */
+    public function getChildren(): Collection
+    {
+        return $this->children;
+    }
+
+    public function addChild(self $child): self
+    {
+        if (!$this->children->contains($child)) {
+            $this->children->add($child);
+            $child->setParent($this);
+        }
 
         return $this;
     }
