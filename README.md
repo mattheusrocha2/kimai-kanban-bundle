@@ -71,7 +71,11 @@ docker exec -u root plugin-kimai-kimai-1 chown -R $(id -u):$(id -g) /opt/kimai/v
 
 Para encerrar mantendo os dados: `docker compose down`. Para apagar tudo (banco incluso): `docker compose down -v`.
 
-## Instalação no Kimai (Coolify)
+## Instalação automática no Coolify (recomendado)
+
+Se o seu Kimai no Coolify foi instalado pela opção de app pronto (um clique, sem repositório git por trás), veja **[`deploy/README.md`](deploy/README.md)** — ele explica como colar um `docker-compose.yml` que baixa e instala este plugin sozinho a cada deploy, direto deste repositório GitHub, sem precisar copiar arquivo nenhum manualmente.
+
+## Instalação manual no Kimai (Coolify)
 
 1. Copie a pasta inteira `KanbanBundle` para dentro do container/volume do Kimai, em `var/plugins/KanbanBundle`.
    - No Coolify, isso normalmente significa montar/copiar para o volume persistente que aponta para `/opt/kimai/var/plugins/` (confirme o caminho do volume do seu deploy).

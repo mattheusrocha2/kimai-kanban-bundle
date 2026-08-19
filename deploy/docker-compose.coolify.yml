@@ -1,0 +1,106 @@
+services:
+  mysql:
+    image: 'mysql:8'
+    volumes:
+      - 'kimai-mysql-data:/var/lib/mysql'
+    environment:
+      - 'MYSQL_DATABASE=${MYSQL_DATABASE:-kimai}'
+      - 'MYSQL_USER=${SERVICE_USER_MYSQL}'
+      - 'MYSQL_PASSWORD=${SERVICE_PASSWORD_MYSQL}'
+      - 'MYSQL_ROOT_PASSWORD=${SERVICE_PASSWORD_ROOT}'
+    command: '--default-storage-engine innodb'
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+        - '-h'
+        - 127.0.0.1
+      interval: 5s
+      timeout: 20s
+      retries: 10
+
+  # Downloads the KanbanBundle plugin from GitHub into a volume shared with
+  # `kimai` and `kanban-plugin-install`. Runs once per deploy, before Kimai
+  # boots, so the plugin is always present and up to date.
+  kanban-plugin-sync:
+    image: 'curlimages/curl:8.10.1'
+    user: root
+    volumes:
+      - 'kimai-plugins:/plugins'
+    entrypoint:
+      - sh
+      - '-c'
+      - >
+        rm -rf /plugins/KanbanBundle &&
+        mkdir -p /plugins/KanbanBundle &&
+        curl -fsSL https://github.com/mattheusrocha2/kimai-kanban-bundle/archive/refs/heads/main.tar.gz
+        | tar -xz -C /plugins/KanbanBundle --strip-components=1
+    restart: 'no'
+
+  kimai:
+    image: 'kimai/kimai2:apache'
+    container_name: kimai
+    ports:
+      - '8005:8001'
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kanban-plugin-sync:
+        condition: service_completed_successfully
+    volumes:
+      - 'kimai-data:/opt/kimai/var/data'
+      - 'kimai-plugins:/opt/kimai/var/plugins'
+      - 'kimai-bundles:/opt/kimai/public/bundles'
+    environment:
+      - SERVICE_URL_KIMAI_8001
+      - 'APP_SECRET=${SERVICE_PASSWORD_APPSECRET}'
+      - 'MAILER_FROM=${MAILER_FROM:-kimai@example.com}'
+      - 'MAILER_URL=${MAILER_URL:-null://null}'
+      - 'ADMINMAIL=${ADMINMAIL:-admin@kimai.local}'
+      - 'ADMINPASS=${SERVICE_PASSWORD_ADMINPASS}'
+      - 'DATABASE_URL=mysql://${SERVICE_USER_MYSQL}:${SERVICE_PASSWORD_MYSQL}@mysql/${MYSQL_DATABASE}?charset=utf8mb4&serverVersion=8.3.0'
+      - 'TRUSTED_HOSTS=${TRUSTED_HOSTS}|localhost|127.0.0.1'
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://127.0.0.1:8001'
+      interval: 2s
+      timeout: 10s
+      retries: 15
+
+  # Installs/updates the plugin's database tables and publishes its CSS/JS,
+  # once Kimai itself is confirmed healthy (so the core schema it depends on
+  # already exists). Runs every deploy; safe to re-run (idempotent).
+  kanban-plugin-install:
+    image: 'kimai/kimai2:apache'
+    depends_on:
+      kimai:
+        condition: service_healthy
+      kanban-plugin-sync:
+        condition: service_completed_successfully
+    volumes:
+      - 'kimai-data:/opt/kimai/var/data'
+      - 'kimai-plugins:/opt/kimai/var/plugins'
+      - 'kimai-bundles:/opt/kimai/public/bundles'
+    environment:
+      - 'APP_SECRET=${SERVICE_PASSWORD_APPSECRET}'
+      - 'DATABASE_URL=mysql://${SERVICE_USER_MYSQL}:${SERVICE_PASSWORD_MYSQL}@mysql/${MYSQL_DATABASE}?charset=utf8mb4&serverVersion=8.3.0'
+    # A fresh container has no compiled cache yet; running cache:clear first
+    # is required for the plugin's console command to be found (and also
+    # needs a higher memory_limit than PHP's 128M default, since we bypass
+    # Kimai's own entrypoint.sh, which normally raises it to 512M).
+    entrypoint: ['sh', '-c']
+    command:
+      - >
+        php -d memory_limit=512M /opt/kimai/bin/console cache:clear --env=prod &&
+        php -d memory_limit=512M /opt/kimai/bin/console -n kimai:bundle:kanban:install
+    restart: 'no'
+
+volumes:
+  kimai-mysql-data:
+  kimai-data:
+  kimai-plugins:
+  kimai-bundles:
