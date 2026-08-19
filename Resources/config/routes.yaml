@@ -1,0 +1,7 @@
+kanban_board_controller:
+    resource: '../../Controller/BoardController.php'
+    type: attribute
+
+kanban_task_controller:
+    resource: '../../Controller/TaskController.php'
+    type: attribute

@@ -1,0 +1,99 @@
+<div class="modal fade" id="kanban-task-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <input type="text" id="kanban-task-title" class="form-control form-control-lg border-0" placeholder="{{ 'kanban.task.title'|trans }}">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="kanban-task-id">
+
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label>{{ 'kanban.task.start_date'|trans }}</label>
+                        <input type="date" id="kanban-task-start-date" class="form-control">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label>{{ 'kanban.task.due_date'|trans }}</label>
+                        <input type="date" id="kanban-task-due-date" class="form-control">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label>{{ 'kanban.task.end_date'|trans }}</label>
+                        <input type="date" id="kanban-task-end-date" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ 'description'|trans }}</label>
+                    <textarea id="kanban-task-description" class="form-control" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="kanban-task-done"> {{ 'kanban.task.mark_done'|trans }}
+                    </label>
+                </div>
+
+                <hr>
+
+                <div class="kanban-timer-box d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <strong>{{ 'kanban.task.time'|trans }}:</strong>
+                        <span id="kanban-task-time" class="ml-1">00:00</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-success" id="kanban-task-start-btn">
+                            <i class="fas fa-play"></i> {{ 'kanban.task.start'|trans }}
+                        </button>
+                        <button type="button" class="btn btn-warning d-none" id="kanban-task-pause-btn">
+                            <i class="fas fa-pause"></i> {{ 'kanban.task.pause'|trans }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="kanban-log-time-form">
+                    <label class="mb-1">{{ 'kanban.task.log.title'|trans }}</label>
+                    <div class="form-row align-items-end">
+                        <div class="form-group col-4 mb-2">
+                            <label class="small mb-0">{{ 'kanban.task.log.date'|trans }}</label>
+                            <input type="date" id="kanban-log-date" class="form-control form-control-sm">
+                        </div>
+                        <div class="form-group col-3 mb-2">
+                            <label class="small mb-0">{{ 'kanban.task.log.start'|trans }}</label>
+                            <input type="time" id="kanban-log-start" class="form-control form-control-sm">
+                        </div>
+                        <div class="form-group col-3 mb-2">
+                            <label class="small mb-0">{{ 'kanban.task.log.end'|trans }}</label>
+                            <input type="time" id="kanban-log-end" class="form-control form-control-sm">
+                        </div>
+                        <div class="form-group col-2 mb-2">
+                            <button type="button" class="btn btn-sm btn-primary btn-block" id="kanban-log-time-add">{{ 'kanban.task.log.add'|trans }}</button>
+                        </div>
+                    </div>
+                    <ul class="list-group mb-2" id="kanban-time-log-items"></ul>
+                </div>
+
+                <hr>
+
+                <h6>{{ 'kanban.task.checklist'|trans }}</h6>
+                <ul class="list-group mb-2" id="kanban-checklist-items"></ul>
+                <div class="input-group">
+                    <input type="text" id="kanban-checklist-new-text" class="form-control" placeholder="{{ 'kanban.checklist.add_placeholder'|trans }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" id="kanban-checklist-add">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-danger" id="kanban-task-delete-btn">
+                    <i class="fas fa-trash"></i> {{ 'delete'|trans }}
+                </button>
+                <button type="button" class="btn btn-primary" id="kanban-task-save-btn">
+                    {{ 'action.save'|trans }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

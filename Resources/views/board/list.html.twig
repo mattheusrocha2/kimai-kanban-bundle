@@ -1,0 +1,94 @@
+{% extends 'base.html.twig' %}
+
+{% block page_title %}{{ board.title }}{% endblock %}
+
+{% block head %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('bundles/kanban/css/kanban.css') }}">
+{% endblock %}
+
+{% block main %}
+<div class="content kanban-page" data-board-id="{{ board.id }}">
+    <div class="kanban-toolbar mb-3 d-flex justify-content-between align-items-center">
+        <h3 class="m-0">
+            <i class="fas fa-list"></i> {{ board.title }}
+            <small class="text-muted">{{ board.project.name }}</small>
+        </h3>
+        <div>
+            <a href="{{ path('kanban_project_board', {project: board.project.id}) }}" class="btn btn-default">
+                <i class="fas fa-columns"></i> {{ 'kanban.view.board'|trans }}
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>{{ 'kanban.task.title'|trans }}</th>
+                    <th>{{ 'kanban.list.title'|trans }}</th>
+                    <th>{{ 'kanban.task.start_date'|trans }}</th>
+                    <th>{{ 'kanban.task.due_date'|trans }}</th>
+                    <th>{{ 'kanban.task.checklist'|trans }}</th>
+                    <th>{{ 'kanban.task.time'|trans }}</th>
+                    <th>{{ 'actions'|trans }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                    <tr class="{% if task.done %}text-muted{% endif %}" data-task-id="{{ task.id }}">
+                        <td>
+                            <a href="#" class="kanban-open-task" data-task-id="{{ task.id }}">{{ task.title }}</a>
+                        </td>
+                        <td>{{ task.taskList.title }}</td>
+                        <td>{{ task.startDate ? task.startDate|date('d/m/Y') : '—' }}</td>
+                        <td>{{ task.dueDate ? task.dueDate|date('d/m/Y') : '—' }}</td>
+                        <td>
+                            {% set progress = task.checklistProgress %}
+                            {% if progress.total > 0 %}{{ progress.done }}/{{ progress.total }}{% else %}—{% endif %}
+                        </td>
+                        <td class="kanban-card-time" data-task-id="{{ task.id }}">
+                            <span class="kanban-time-value">{{ task.totalWorkedSeconds|kanban_duration }}</span>
+                        </td>
+                        <td>
+                            {% if task.running %}
+                                <button class="btn btn-xs btn-warning kanban-task-pause" data-task-id="{{ task.id }}">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                            {% else %}
+                                <button class="btn btn-xs btn-success kanban-task-start" data-task-id="{{ task.id }}">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7">{{ 'kanban.task.none'|trans }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% include '@Kanban/task/_modal.html.twig' %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        window.KANBAN_RUNNING_LABEL = "{{ 'kanban.task.log.running'|trans }}";
+        window.KANBAN_URLS = {
+            taskShowBase: "{{ path('kanban_task_show', {task: 0}) }}",
+            taskUpdateBase: "{{ path('kanban_task_update', {task: 0}) }}",
+            taskStartBase: "{{ path('kanban_task_start', {task: 0}) }}",
+            taskPauseBase: "{{ path('kanban_task_pause', {task: 0}) }}",
+            taskDeleteBase: "{{ path('kanban_task_delete', {task: 0}) }}",
+            checklistCreateBase: "{{ path('kanban_checklist_create', {task: 0}) }}",
+            checklistToggleBase: "{{ path('kanban_checklist_toggle', {item: 0}) }}",
+            checklistDeleteBase: "{{ path('kanban_checklist_delete', {item: 0}) }}",
+            logTimeBase: "{{ path('kanban_task_log_time', {task: 0}) }}",
+            logDeleteBase: "{{ path('kanban_task_log_delete', {task: 0, timesheet: 0}) }}"
+        };
+    </script>
+    <script src="{{ asset('bundles/kanban/js/kanban.js') }}"></script>
+{% endblock %}

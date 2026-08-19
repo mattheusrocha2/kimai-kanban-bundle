@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+
+{% block page_title %}{{ board.title }}{% endblock %}
+
+{% block head %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('bundles/kanban/css/kanban.css') }}">
+{% endblock %}
+
+{% block main %}
+<div class="content kanban-page" data-board-id="{{ board.id }}">
+    <div class="kanban-toolbar mb-3 d-flex justify-content-between align-items-center">
+        <h3 class="m-0">
+            <i class="fas fa-columns"></i> {{ board.title }}
+            <small class="text-muted">{{ board.project.name }}</small>
+        </h3>
+        <div>
+            <a href="{{ path('kanban_project_list', {project: board.project.id}) }}" class="btn btn-default">
+                <i class="fas fa-list"></i> {{ 'kanban.view.list'|trans }}
+            </a>
+        </div>
+    </div>
+
+    <div class="kanban-board" id="kanban-board">
+        {% for list in board.lists %}
+            <div class="kanban-list" data-list-id="{{ list.id }}" draggable="true">
+                <div class="kanban-list-header"
+                     {% if list.color %}style="background-color: {{ list.color }}; color: {{ list.color|kanban_contrast_color }};"{% endif %}>
+                    <span class="kanban-list-title" contenteditable="true" draggable="false" data-list-id="{{ list.id }}">{{ list.title }}</span>
+                    <button class="btn btn-sm btn-link kanban-list-color-toggle {% if not list.color %}text-muted{% endif %}" data-list-id="{{ list.id }}" title="{{ 'kanban.list.color'|trans }}">
+                        <i class="fas fa-palette"></i>
+                    </button>
+                    <button class="btn btn-sm btn-link text-danger kanban-list-delete" data-list-id="{{ list.id }}" title="{{ 'delete'|trans }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="kanban-color-swatches kanban-list-color-picker d-none" data-list-id="{{ list.id }}">
+                    <button type="button" class="kanban-color-swatch kanban-color-swatch-none" data-color="" title="{{ 'kanban.list.color_none'|trans }}"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#61bd4f" data-color="#61bd4f"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#f2d600" data-color="#f2d600"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#ff9f1a" data-color="#ff9f1a"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#eb5a46" data-color="#eb5a46"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#c377e0" data-color="#c377e0"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#0079bf" data-color="#0079bf"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#00c2e0" data-color="#00c2e0"></button>
+                    <button type="button" class="kanban-color-swatch" style="background:#51e898" data-color="#51e898"></button>
+                </div>
+                <div class="kanban-cards" data-list-id="{{ list.id }}">
+                    {% for task in list.tasks %}
+                        {% include '@Kanban/board/_card.html.twig' with {task: task} %}
+                    {% endfor %}
+                </div>
+                <button class="btn btn-sm btn-block kanban-add-task" data-list-id="{{ list.id }}">
+                    <i class="fas fa-plus"></i> {{ 'kanban.task.add'|trans }}
+                </button>
+                <div class="kanban-add-task-form d-none" data-list-id="{{ list.id }}">
+                    <textarea class="form-control kanban-add-task-input" rows="2" placeholder="{{ 'kanban.task.title'|trans }}"></textarea>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-primary kanban-add-task-submit" data-list-id="{{ list.id }}">{{ 'kanban.task.add'|trans }}</button>
+                        <button class="btn btn-sm btn-link kanban-add-task-cancel" data-list-id="{{ list.id }}">{{ 'cancel'|trans }}</button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="kanban-list kanban-list-new">
+            <input type="text" class="form-control" id="new-list-title" placeholder="{{ 'kanban.list.add_placeholder'|trans }}">
+            <button class="btn btn-sm btn-primary mt-2" id="new-list-submit">
+                <i class="fas fa-plus"></i> {{ 'kanban.list.add'|trans }}
+            </button>
+        </div>
+    </div>
+</div>
+
+{% include '@Kanban/task/_modal.html.twig' %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        window.KANBAN_RUNNING_LABEL = "{{ 'kanban.task.log.running'|trans }}";
+        window.KANBAN_URLS = {
+            listCreate: "{{ path('kanban_list_create', {board: board.id}) }}",
+            listRenameBase: "{{ path('kanban_list_rename', {list: 0}) }}",
+            listDeleteBase: "{{ path('kanban_list_delete', {list: 0}) }}",
+            listColorBase: "{{ path('kanban_list_color', {list: 0}) }}",
+            listReorderBase: "{{ path('kanban_list_reorder', {list: 0}) }}",
+            taskCreateBase: "{{ path('kanban_task_create', {list: 0}) }}",
+            taskShowBase: "{{ path('kanban_task_show', {task: 0}) }}",
+            taskUpdateBase: "{{ path('kanban_task_update', {task: 0}) }}",
+            taskMoveBase: "{{ path('kanban_task_move', {task: 0}) }}",
+            taskStartBase: "{{ path('kanban_task_start', {task: 0}) }}",
+            taskPauseBase: "{{ path('kanban_task_pause', {task: 0}) }}",
+            taskDeleteBase: "{{ path('kanban_task_delete', {task: 0}) }}",
+            checklistCreateBase: "{{ path('kanban_checklist_create', {task: 0}) }}",
+            checklistToggleBase: "{{ path('kanban_checklist_toggle', {item: 0}) }}",
+            checklistDeleteBase: "{{ path('kanban_checklist_delete', {item: 0}) }}",
+            logTimeBase: "{{ path('kanban_task_log_time', {task: 0}) }}",
+            logDeleteBase: "{{ path('kanban_task_log_delete', {task: 0, timesheet: 0}) }}"
+        };
+    </script>
+    <script src="{{ asset('bundles/kanban/js/kanban.js') }}"></script>
+{% endblock %}

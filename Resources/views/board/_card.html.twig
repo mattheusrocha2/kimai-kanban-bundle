@@ -1,0 +1,27 @@
+<div class="kanban-card {% if task.done %}kanban-card-done{% endif %} {% if task.running %}kanban-card-running{% endif %}"
+     data-task-id="{{ task.id }}" draggable="true">
+    <div class="kanban-card-title">{{ task.title }}</div>
+    <div class="kanban-card-meta">
+        {% if task.dueDate %}
+            <span class="badge badge-warning"><i class="far fa-calendar-alt"></i> {{ task.dueDate|date('d/m') }}</span>
+        {% endif %}
+        {% set progress = task.checklistProgress %}
+        {% if progress.total > 0 %}
+            <span class="badge badge-secondary"><i class="fas fa-check-square"></i> {{ progress.done }}/{{ progress.total }}</span>
+        {% endif %}
+        <span class="badge badge-info kanban-card-time" data-task-id="{{ task.id }}">
+            <i class="fas fa-clock"></i> <span class="kanban-time-value">{{ task.totalWorkedSeconds|kanban_duration }}</span>
+        </span>
+    </div>
+    <div class="kanban-card-actions">
+        {% if task.running %}
+            <button class="btn btn-xs btn-warning kanban-task-pause" data-task-id="{{ task.id }}">
+                <i class="fas fa-pause"></i> {{ 'kanban.task.pause'|trans }}
+            </button>
+        {% else %}
+            <button class="btn btn-xs btn-success kanban-task-start" data-task-id="{{ task.id }}">
+                <i class="fas fa-play"></i> {{ 'kanban.task.start'|trans }}
+            </button>
+        {% endif %}
+    </div>
+</div>

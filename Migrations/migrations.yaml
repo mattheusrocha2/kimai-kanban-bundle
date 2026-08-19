@@ -1,0 +1,4 @@
+table_storage:
+    table_name: 'kanban_bundle_migration_versions'
+migrations_paths:
+    'KimaiPlugin\KanbanBundle\Migrations': '.'

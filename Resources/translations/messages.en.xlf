@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" target-language="en" datatype="plaintext" original="file.ext">
+        <body>
+            <trans-unit id="menu.kanban" resname="menu.kanban">
+                <source>menu.kanban</source>
+                <target>Kanban</target>
+            </trans-unit>
+            <trans-unit id="kanban.projects.pick" resname="kanban.projects.pick">
+                <source>kanban.projects.pick</source>
+                <target>Select a project</target>
+            </trans-unit>
+            <trans-unit id="kanban.projects.none" resname="kanban.projects.none">
+                <source>kanban.projects.none</source>
+                <target>No projects found.</target>
+            </trans-unit>
+            <trans-unit id="kanban.view.board" resname="kanban.view.board">
+                <source>kanban.view.board</source>
+                <target>Kanban board</target>
+            </trans-unit>
+            <trans-unit id="kanban.view.list" resname="kanban.view.list">
+                <source>kanban.view.list</source>
+                <target>Task list</target>
+            </trans-unit>
+            <trans-unit id="kanban.list.title" resname="kanban.list.title">
+                <source>kanban.list.title</source>
+                <target>List</target>
+            </trans-unit>
+            <trans-unit id="kanban.list.add" resname="kanban.list.add">
+                <source>kanban.list.add</source>
+                <target>Add list</target>
+            </trans-unit>
+            <trans-unit id="kanban.list.add_placeholder" resname="kanban.list.add_placeholder">
+                <source>kanban.list.add_placeholder</source>
+                <target>New list name</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.add" resname="kanban.task.add">
+                <source>kanban.task.add</source>
+                <target>Add task</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.title" resname="kanban.task.title">
+                <source>kanban.task.title</source>
+                <target>Task title</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.start_date" resname="kanban.task.start_date">
+                <source>kanban.task.start_date</source>
+                <target>Start date</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.due_date" resname="kanban.task.due_date">
+                <source>kanban.task.due_date</source>
+                <target>Due date</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.end_date" resname="kanban.task.end_date">
+                <source>kanban.task.end_date</source>
+                <target>End date</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.mark_done" resname="kanban.task.mark_done">
+                <source>kanban.task.mark_done</source>
+                <target>Mark as done</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.checklist" resname="kanban.task.checklist">
+                <source>kanban.task.checklist</source>
+                <target>Checklist</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.time" resname="kanban.task.time">
+                <source>kanban.task.time</source>
+                <target>Worked time</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.start" resname="kanban.task.start">
+                <source>kanban.task.start</source>
+                <target>Start</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.pause" resname="kanban.task.pause">
+                <source>kanban.task.pause</source>
+                <target>Pause</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.none" resname="kanban.task.none">
+                <source>kanban.task.none</source>
+                <target>No tasks yet.</target>
+            </trans-unit>
+            <trans-unit id="kanban.checklist.add_placeholder" resname="kanban.checklist.add_placeholder">
+                <source>kanban.checklist.add_placeholder</source>
+                <target>New checklist item</target>
+            </trans-unit>
+                    <trans-unit id="kanban.list.color" resname="kanban.list.color">
+                <source>kanban.list.color</source>
+                <target>List color</target>
+            </trans-unit>
+            <trans-unit id="kanban.list.color_none" resname="kanban.list.color_none">
+                <source>kanban.list.color_none</source>
+                <target>No color</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.log.title" resname="kanban.task.log.title">
+                <source>kanban.task.log.title</source>
+                <target>Log time manually</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.log.date" resname="kanban.task.log.date">
+                <source>kanban.task.log.date</source>
+                <target>Date</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.log.start" resname="kanban.task.log.start">
+                <source>kanban.task.log.start</source>
+                <target>Start</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.log.end" resname="kanban.task.log.end">
+                <source>kanban.task.log.end</source>
+                <target>End</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.log.add" resname="kanban.task.log.add">
+                <source>kanban.task.log.add</source>
+                <target>Add</target>
+            </trans-unit>
+            <trans-unit id="kanban.task.log.running" resname="kanban.task.log.running">
+                <source>kanban.task.log.running</source>
+                <target>running</target>
+            </trans-unit>
+</body>
+    </file>
+</xliff>

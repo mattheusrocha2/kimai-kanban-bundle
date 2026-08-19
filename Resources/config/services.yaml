@@ -1,0 +1,14 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    KimaiPlugin\KanbanBundle\:
+        resource: '../../*'
+        exclude:
+            - '../../{DependencyInjection,Entity,Migrations,Resources,Tests,KanbanBundle.php}'
+
+    KimaiPlugin\KanbanBundle\Controller\:
+        resource: '../../Controller'
+        tags: ['controller.service_arguments']
