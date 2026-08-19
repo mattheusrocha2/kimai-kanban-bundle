@@ -17,14 +17,20 @@ class ChecklistItemRepository extends ServiceEntityRepository
         parent::__construct($registry, ChecklistItem::class);
     }
 
-    public function getNextPosition(Task $task): int
+    public function getNextPosition(Task $task, ?ChecklistItem $parent = null): int
     {
-        $max = $this->createQueryBuilder('c')
+        $qb = $this->createQueryBuilder('c')
             ->select('MAX(c.position)')
             ->where('c.task = :task')
-            ->setParameter('task', $task)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('task', $task);
+
+        if ($parent === null) {
+            $qb->andWhere('c.parent IS NULL');
+        } else {
+            $qb->andWhere('c.parent = :parent')->setParameter('parent', $parent);
+        }
+
+        $max = $qb->getQuery()->getSingleScalarResult();
 
         return $max === null ? 0 : ((int) $max + 1);
     }

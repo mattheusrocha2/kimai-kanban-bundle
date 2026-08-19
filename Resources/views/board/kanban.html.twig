@@ -93,8 +93,11 @@
             taskPauseBase: "{{ path('kanban_task_pause', {task: 0}) }}",
             taskDeleteBase: "{{ path('kanban_task_delete', {task: 0}) }}",
             checklistCreateBase: "{{ path('kanban_checklist_create', {task: 0}) }}",
+            checklistChildCreateBase: "{{ path('kanban_checklist_child_create', {item: 0}) }}",
             checklistToggleBase: "{{ path('kanban_checklist_toggle', {item: 0}) }}",
             checklistDeleteBase: "{{ path('kanban_checklist_delete', {item: 0}) }}",
+            attachmentUploadBase: "{{ path('kanban_attachment_upload', {task: 0}) }}",
+            attachmentDeleteBase: "{{ path('kanban_attachment_delete', {attachment: 0}) }}",
             logTimeBase: "{{ path('kanban_task_log_time', {task: 0}) }}",
             logDeleteBase: "{{ path('kanban_task_log_delete', {task: 0, timesheet: 0}) }}"
         };
