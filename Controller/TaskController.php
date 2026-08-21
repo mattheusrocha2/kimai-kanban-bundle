@@ -178,6 +178,14 @@ class TaskController extends AbstractController
         try {
             $begin = new \DateTime($date . ' ' . $startTime);
             $end = new \DateTime($date . ' ' . $endTime);
+
+            // Overnight shift: if the end time is not after the begin time,
+            // the work block must have rolled over into the next day
+            // (e.g. started 22:23, ended 01:40).
+            if ($end <= $begin) {
+                $end->modify('+1 day');
+            }
+
             $this->timeTracking->logManual($task, $this->getUser(), $begin, $end);
         } catch (\RuntimeException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
