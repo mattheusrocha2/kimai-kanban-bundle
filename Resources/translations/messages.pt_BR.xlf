@@ -114,6 +114,34 @@
                 <source>kanban.task.log.running</source>
                 <target>em andamento</target>
             </trans-unit>
+            <trans-unit id="kanban.description.edit" resname="kanban.description.edit">
+                <source>kanban.description.edit</source>
+                <target>Editar</target>
+            </trans-unit>
+            <trans-unit id="kanban.description.preview" resname="kanban.description.preview">
+                <source>kanban.description.preview</source>
+                <target>Pré-visualizar</target>
+            </trans-unit>
+            <trans-unit id="kanban.description.markdown_hint" resname="kanban.description.markdown_hint">
+                <source>kanban.description.markdown_hint</source>
+                <target>A descrição aceita formatação Markdown.</target>
+            </trans-unit>
+            <trans-unit id="kanban.attachment.title" resname="kanban.attachment.title">
+                <source>kanban.attachment.title</source>
+                <target>Anexos</target>
+            </trans-unit>
+            <trans-unit id="kanban.attachment.add" resname="kanban.attachment.add">
+                <source>kanban.attachment.add</source>
+                <target>Adicionar anexo</target>
+            </trans-unit>
+            <trans-unit id="kanban.attachment.hint" resname="kanban.attachment.hint">
+                <source>kanban.attachment.hint</source>
+                <target>Imagens em PNG, JPEG, GIF ou WEBP.</target>
+            </trans-unit>
+            <trans-unit id="kanban.attachment.upload_failed" resname="kanban.attachment.upload_failed">
+                <source>kanban.attachment.upload_failed</source>
+                <target>Falha ao enviar o anexo.</target>
+            </trans-unit>
 </body>
     </file>
 </xliff>

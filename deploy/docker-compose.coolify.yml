@@ -1,3 +1,11 @@
+# NOTE: if this stack sits behind Cloudflare (proxied DNS record, orange
+# cloud), Cloudflare caches static assets under /bundles/ for hours
+# (cache-control: max-age=14400) independent of any browser cache. After a
+# deploy that changes the plugin's JS/CSS, purge the cache for this domain
+# in the Cloudflare dashboard (Caching > Configuration > Purge Everything,
+# or purge just /bundles/kanban/*) — otherwise visitors keep getting the
+# pre-deploy files for up to 4 hours even with a hard refresh, since the
+# stale response never reaches their browser to refresh in the first place.
 services:
   mysql:
     image: 'mysql:8'
@@ -52,6 +60,16 @@ services:
       - 'kimai-data:/opt/kimai/var/data'
       - 'kimai-plugins:/opt/kimai/var/plugins'
       - 'kimai-bundles:/opt/kimai/public/bundles'
+      # Shared with `kanban-plugin-install` so that ITS `cache:clear` (which
+      # picks up newly-synced plugin code, e.g. new translation keys)
+      # actually invalidates the cache this container serves requests from.
+      # Without this, `kanban-plugin-install` was clearing var/cache inside
+      # its own throwaway container, which has zero effect here — this
+      # container kept serving whatever Symfony compiled on its own first
+      # boot, so plugin translations/routes added after that boot silently
+      # fell back to English (or the raw key) until this container itself
+      # was manually restarted.
+      - 'kimai-cache:/opt/kimai/var/cache'
     environment:
       - SERVICE_URL_KIMAI_8001
       - 'APP_SECRET=${SERVICE_PASSWORD_APPSECRET}'
@@ -67,9 +85,14 @@ services:
         - curl
         - '-f'
         - 'http://127.0.0.1:8001'
-      interval: 2s
+      # First boot does cache warmup and can easily take past a minute on
+      # Coolify's disk — 15 retries * 2s (30s total) was marking it unhealthy
+      # before it ever finished starting, which then made kanban-plugin-install
+      # (depends_on: kimai healthy) get skipped for the rest of the deploy.
+      interval: 5s
       timeout: 10s
-      retries: 15
+      retries: 40
+      start_period: 60s
 
   # Installs/updates the plugin's database tables and publishes its CSS/JS,
   # once Kimai itself is confirmed healthy (so the core schema it depends on
@@ -85,6 +108,9 @@ services:
       - 'kimai-data:/opt/kimai/var/data'
       - 'kimai-plugins:/opt/kimai/var/plugins'
       - 'kimai-bundles:/opt/kimai/public/bundles'
+      # Same cache volume as `kimai` (see the note there) so that clearing
+      # it here is actually visible to the container serving traffic.
+      - 'kimai-cache:/opt/kimai/var/cache'
     environment:
       - 'APP_SECRET=${SERVICE_PASSWORD_APPSECRET}'
       - 'DATABASE_URL=mysql://${SERVICE_USER_MYSQL}:${SERVICE_PASSWORD_MYSQL}@mysql/${MYSQL_DATABASE}?charset=utf8mb4&serverVersion=8.3.0'
